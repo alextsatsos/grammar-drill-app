@@ -60,9 +60,14 @@ FEEDBACK_SCHEMA = {
                         "description": (
                             "A brief description of any mistakes NOT related "
                             "to the target concept (wrong characters, word "
-                            "order, missing/extra words, tone/measure-word "
-                            "slips, etc.). If there are no other errors, say "
-                            "so briefly (e.g. 'No other errors.')."
+                            "order, missing/extra words, wrong tones, missing "
+                            "or incorrect measure words, etc.). Measure-word "
+                            "mistakes are real grammar errors and must be "
+                            "flagged here (unless the target concept IS measure "
+                            "words, in which case they belong to concept_pass "
+                            "instead) — never wave them through. If there are "
+                            "no other errors, say so briefly (e.g. 'No other "
+                            "errors.')."
                         ),
                     },
                     "corrected_translation": {
@@ -109,7 +114,22 @@ def get_count() -> int:
     return count
 
 
-def generate_sentences(concept: str, count: int) -> list[str]:
+def get_hsk_level() -> int | None:
+    raw = input(
+        "HSK vocab level? (1-6, press enter for natural/default): "
+    ).strip()
+    if not raw:
+        return None
+    try:
+        level = int(raw)
+    except ValueError:
+        sys.exit(f"'{raw}' is not a number.")
+    if level < 1 or level > 6:
+        sys.exit("HSK level must be between 1 and 6.")
+    return level
+
+
+def generate_sentences(concept: str, count: int, hsk_level: int | None) -> list[str]:
     prompt = (
         f"Generate exactly {count} English sentences that would require the "
         f"Chinese grammar concept '{concept}' to translate naturally into "
@@ -124,6 +144,19 @@ def generate_sentences(concept: str, count: int) -> list[str]:
         f"the sentences natural and everyday-usable — just not overloaded. "
         f"Vary the subject matter."
     )
+
+    if hsk_level is not None:
+        prompt += (
+            f"\n\nVOCABULARY LEVEL: Keep the vocabulary needed to translate "
+            f"each sentence into Chinese at or below HSK level {hsk_level}. "
+            f"Only use words whose natural Chinese translation is HSK "
+            f"{hsk_level} or lower. If a word would push above HSK "
+            f"{hsk_level}, choose a simpler everyday alternative that stays "
+            f"within the limit. This constraint is about vocabulary "
+            f"difficulty only — the target concept '{concept}' must still be "
+            f"clearly required in every sentence, even if the grammar of the "
+            f"concept itself is above HSK {hsk_level}."
+        )
 
     response = client.messages.create(
         model=MODEL,
@@ -189,6 +222,14 @@ def get_feedback(
         f"are none, say so briefly. Provide corrected_translation with the "
         f"fully corrected Chinese sentence (empty string only if nothing at "
         f"all needs fixing).\n\n"
+        f"MEASURE WORDS (量词): Grade them. A missing measure word (e.g. "
+        f"writing 一书 instead of 一本书) or a wrong measure word for the noun "
+        f"is a real grammar error — never treat it as acceptable or ignore it. "
+        f"Route it by the same boundary rule as everything else: if the target "
+        f"concept '{concept}' IS measure words, then a measure-word error makes "
+        f"concept_pass = false; otherwise flag it in other_errors like any "
+        f"other unrelated grammar mistake. Do not wave measure-word errors "
+        f"through in either section.\n\n"
         f"Do NOT treat the following as errors, in either section:\n"
         f"- Punctuation: ignore missing or nonstandard punctuation entirely "
         f"(periods, commas, 。，、! ? etc.). Never mention punctuation in "
@@ -245,10 +286,11 @@ def print_feedback(
 def main() -> None:
     concept = get_concept()
     count = get_count()
+    hsk_level = get_hsk_level()
 
     print(f"\nGenerating {count} sentences for '{concept}'...")
     try:
-        sentences = generate_sentences(concept, count)
+        sentences = generate_sentences(concept, count, hsk_level)
     except APIError as e:
         sys.exit(f"API error while generating sentences: {e}")
 
