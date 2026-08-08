@@ -14,12 +14,33 @@ request or response.
 
 from anthropic import APIError
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from drill_core import generate_sentences, get_feedback
 
 # The FastAPI application object. Uvicorn (the server) looks for this variable.
 app = FastAPI(title="Grammar Drill API")
+
+# ---------------------------------------------------------------------------
+# CORS: allow the browser-based frontend to call this API.
+#
+# The Vite dev server runs on a DIFFERENT origin (http://localhost:5173) than
+# this backend (http://localhost:8000). By default browsers block cross-origin
+# requests, so we explicitly list the frontend's origin as allowed. Middleware
+# runs on every request and attaches the Access-Control-Allow-* headers the
+# browser looks for. Both localhost and 127.0.0.1 are listed because they count
+# as separate origins depending on how you open the page.
+# ---------------------------------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_methods=["*"],   # allow GET, POST, OPTIONS preflight, etc.
+    allow_headers=["*"],   # allow Content-Type: application/json, etc.
+)
 
 
 # ---------------------------------------------------------------------------
