@@ -12,6 +12,8 @@ API key lives only inside drill_core (loaded from .env) and is never part of any
 request or response.
 """
 
+from typing import Literal
+
 from anthropic import APIError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,6 +53,12 @@ app.add_middleware(
 # JSON, and to build the /docs page automatically.
 # ---------------------------------------------------------------------------
 
+# The two scripts a caller may request. `Literal[...]` restricts the field to
+# exactly these two strings — any other value is rejected by FastAPI with a 422
+# before our code runs. Defined once and reused by both request models so the
+# two endpoints stay in lockstep.
+Script = Literal["simplified", "traditional"]
+
 
 class GenerateRequest(BaseModel):
     """Body for POST /generate."""
@@ -68,6 +76,15 @@ class GenerateRequest(BaseModel):
         le=6,
         description="Optional HSK vocab level 1-6. Omit for natural/default vocabulary.",
     )
+    # Which Chinese script the model should produce. Defaults to "simplified",
+    # so requests that omit this field behave exactly as before. Note: /generate
+    # returns ENGLISH sentences, so this field has no visible effect here — it
+    # exists for symmetry with /feedback (where the corrected Chinese is what the
+    # script actually governs) and for a future UI toggle.
+    script: Script = Field(
+        default="simplified",
+        description="Chinese script the model should produce: 'simplified' or 'traditional'.",
+    )
 
 
 class GenerateResponse(BaseModel):
@@ -82,6 +99,14 @@ class FeedbackRequest(BaseModel):
     concept: str = Field(..., description="The same grammar concept that was drilled.")
     sentences: list[str] = Field(..., description="The English sentences that were generated.")
     translations: list[str] = Field(..., description="The user's Chinese translations, in the same order.")
+    # Which script the grader writes its corrected Chinese in (corrected_translation
+    # and any inline-quoted characters). Defaults to "simplified" so existing
+    # requests are unaffected. This governs only the model's OUTPUT script; the
+    # user's own input may be in either script and is never penalized for it.
+    script: Script = Field(
+        default="simplified",
+        description="Chinese script the grader should produce: 'simplified' or 'traditional'.",
+    )
 
 
 class FeedbackItem(BaseModel):
@@ -110,7 +135,9 @@ def generate(request: GenerateRequest) -> GenerateResponse:
     # By the time this runs, FastAPI has already validated `request` against
     # GenerateRequest. We just hand the clean values to the shared core function.
     try:
-        sentences = generate_sentences(request.concept, request.count, request.hsk_level)
+        sentences = generate_sentences(
+            request.concept, request.count, request.hsk_level, request.script
+        )
     except APIError as e:
         # Turn an Anthropic API failure into a proper HTTP error instead of a
         # raw 500 crash. We surface a generic message — never the API key.
@@ -122,7 +149,9 @@ def generate(request: GenerateRequest) -> GenerateResponse:
 def feedback(request: FeedbackRequest) -> FeedbackResponse:
     """Grade the user's translations with the two-score PASS/FAIL feedback."""
     try:
-        result = get_feedback(request.concept, request.sentences, request.translations)
+        result = get_feedback(
+            request.concept, request.sentences, request.translations, request.script
+        )
     except APIError as e:
         raise HTTPException(status_code=502, detail=f"API error while getting feedback: {e}")
     # get_feedback returns a list of plain dicts; FastAPI validates each one

@@ -28,6 +28,12 @@ client = Anthropic(api_key=api_key)
 
 MODEL = "claude-opus-5"
 
+# Maps the wire value ("simplified"/"traditional") to the human word used inside
+# the prompts ("Simplified"/"Traditional"). Both core functions default `script`
+# to "simplified", so existing callers — including the CLI, which passes these
+# functions positionally without a script — keep their current behavior exactly.
+SCRIPT_LABELS = {"simplified": "Simplified", "traditional": "Traditional"}
+
 SENTENCES_SCHEMA = {
     "type": "object",
     "properties": {
@@ -107,7 +113,10 @@ FEEDBACK_SCHEMA = {
 }
 
 
-def generate_sentences(concept: str, count: int, hsk_level: int | None) -> list[str]:
+def generate_sentences(
+    concept: str, count: int, hsk_level: int | None, script: str = "simplified"
+) -> list[str]:
+    script_label = SCRIPT_LABELS[script]
     prompt = (
         f"Generate exactly {count} English sentences that would require the "
         f"Chinese grammar concept '{concept}' to translate naturally into "
@@ -121,6 +130,15 @@ def generate_sentences(concept: str, count: int, hsk_level: int | None) -> list[
         f"it is because of the target concept, not unrelated complexity. Keep "
         f"the sentences natural and everyday-usable — just not overloaded. "
         f"Vary the subject matter."
+    )
+
+    # Script instruction. The generated sentences are ENGLISH, so this has no
+    # visible effect on this endpoint's output; it is added for symmetry with the
+    # grader (where script actually governs the Chinese) and so any incidental
+    # Chinese the model emits matches the requested script.
+    prompt += (
+        f"\n\nSCRIPT: If you write any Chinese characters, use {script_label} "
+        f"characters."
     )
 
     if hsk_level is not None:
@@ -150,8 +168,12 @@ def generate_sentences(concept: str, count: int, hsk_level: int | None) -> list[
 
 
 def get_feedback(
-    concept: str, sentences: list[str], translations: list[str]
+    concept: str,
+    sentences: list[str],
+    translations: list[str],
+    script: str = "simplified",
 ) -> list[dict]:
+    script_label = SCRIPT_LABELS[script]
     pairs = "\n".join(
         f"{i}. English: {en}\n   Chinese (user's translation): {zh}"
         for i, (en, zh) in enumerate(zip(sentences, translations), start=1)
@@ -170,6 +192,13 @@ def get_feedback(
         f"but this should be 房子 (house).\" So: English sentences, with "
         f"Chinese quoted only for the specific characters/phrases being "
         f"discussed.\n\n"
+        f"SCRIPT: Write any Chinese you produce — the corrected_translation and "
+        f"any characters you quote inline — using {script_label} characters. "
+        f"The user may type their translation in either Simplified or "
+        f"Traditional characters; do NOT treat the user's choice of script as "
+        f"an error or as a 'wrong character', and never 'correct' one script "
+        f"into the other. Judge only whether the underlying word and grammar "
+        f"are correct, independent of which script the user wrote in.\n\n"
         f"1. concept_pass (PASS/FAIL on the target concept ONLY): Set to true "
         f"only if the user correctly used the target concept '{concept}'. "
         f"Apply this boundary rule strictly — if an error involves the target "
