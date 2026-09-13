@@ -1,111 +1,306 @@
+/* ---------------------------------------------------------------------------
+   Chinese scholar's-desk theme.
+
+   All colors live here as CSS custom properties named by ROLE, so a single
+   edit re-themes the whole app. The accent (seal-red) is provisional — change
+   --accent-primary in one place and every accent follows.
+   --------------------------------------------------------------------------- */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* desk surface */
+  --desk: #c19a6b;
+  --desk-dark: #a8814f;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* the paper scroll + its wooden rollers */
+  --paper: #f3e9d6;
+  --dowel: #efe3cc;
+  --dowel-cap: #6b4a2f;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* ink + text */
+  --ink: #2b2b2b;
+  --muted: #6b6357;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* brushed-underline inputs (used in a later step) */
+  --line: #9a7c54;
+  --line-focus: #5a3d1f;
+  --bloom: #e7d9bb;
+
+  /* accent — seal-red. Provisional; swap this one value to recolor accents. */
+  --accent-primary: #8a3a2f;
+  --accent-primary-hover: #763025;
+  --accent-on: #f6ece0; /* text/icon color that sits on the accent */
+
+  --serif: Georgia, 'Songti SC', 'Song', serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--desk), var(--desk-dark));
+  font-family: var(--serif);
+  color: var(--ink);
 }
 
+/* React mounts here. Center the scroll near the top of the desk. */
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 64px 20px 60px;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* ---------------------------------------------------------------------------
+   The hanging scroll: a narrow vertical paper with a wooden dowel roller at
+   top and bottom.
+   --------------------------------------------------------------------------- */
+.scroll-wrap {
+  position: relative;
+  width: 440px;
+  max-width: 100%;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+.dowel {
+  position: relative;
+  z-index: 3;
+  height: 32px;
+  background: var(--dowel);
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
+/* the darker end-caps that stick out past the paper on each side */
+.dowel::before,
+.dowel::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 44px;
+  background: var(--dowel-cap);
+  border-radius: 2px;
+}
+.dowel::before { left: -5px; }
+.dowel::after { right: -5px; }
+.dowel.top { margin-bottom: -6px; }
+.dowel.bottom { margin-top: -6px; }
+
+.paper {
+  position: relative;
+  z-index: 1;
+  background: var(--paper);
+  padding: 44px 44px 48px;
+  box-shadow:
+    inset 0 8px 10px -8px rgba(0, 0, 0, 0.18),
+    inset 0 -8px 10px -8px rgba(0, 0, 0, 0.18);
+}
+
+/* ---------------------------------------------------------------------------
+   Brushed title (selection screen): large spaced Chinese with a small,
+   letter-spaced English line beneath it.
+   --------------------------------------------------------------------------- */
+.title {
+  text-align: center;
+  margin: 0 0 40px;
+}
+.title .cn {
+  display: block;
+  font-size: 34px;
+  letter-spacing: 6px;
+  line-height: 1.1;
+}
+.title .en {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Input screen: a plain bold heading, and the English prompt that sits above
+   each translation field.
+   --------------------------------------------------------------------------- */
+.screen-title {
+  text-align: center;
+  margin: 0 0 30px;
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+.prompt {
   margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   Rows: a label sitting ABOVE its field.
+   --------------------------------------------------------------------------- */
+.row {
+  margin-bottom: 28px;
+}
+/* a little more breathing room before the button at the end of a screen */
+.row:last-of-type {
+  margin-bottom: 34px;
+}
+.label {
+  display: block;
+  margin: 0 0 9px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
+   Brushed-underline field: a bottom border only (no box). Resting line is
+   --line; on focus it darkens to --line-focus. The ink-bloom glow is added
+   in the next step.
+   --------------------------------------------------------------------------- */
+.field {
+  position: relative;
+  border-bottom: 2px solid var(--line);
+}
+.field:focus-within {
+  border-bottom-color: var(--line-focus);
+}
+/* the ink bloom: a soft glow that rises from the underline on focus. It sits
+   BEHIND the text (see .inp z-index below) and is purely decorative. */
+.field::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    var(--bloom) 0%,
+    rgba(231, 217, 187, 0) 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 2px;
+}
+.field:focus-within::after {
+  height: 40px;
+  opacity: 0.75;
+}
+.inp {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 8px 2px;
+}
+.inp::placeholder {
+  color: #a99d84;
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   Vocab-level select: same brushed underline, native <select> with its own
+   arrow removed and a seal-red chevron drawn on top. The OPEN menu is
+   OS-drawn — we don't style that.
+   --------------------------------------------------------------------------- */
+.sel {
+  position: relative;
+  border-bottom: 2px solid var(--line);
+}
+.sel:focus-within {
+  border-bottom-color: var(--line-focus);
+}
+.sel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    var(--bloom) 0%,
+    rgba(231, 217, 187, 0) 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 2px;
+}
+.sel:focus-within::after {
+  height: 40px;
+  opacity: 0.75;
+}
+.sel select {
+  position: relative;
+  z-index: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 8px 26px 8px 2px;
+  cursor: pointer;
+}
+
+/* Motion is opt-in: only animate the bloom (and the line darkening) when the
+   viewer has NOT asked for reduced motion. Under reduced motion the bloom and
+   the darkened line simply appear, with no movement. */
+@media (prefers-reduced-motion: no-preference) {
+  .field,
+  .sel {
+    transition: border-color 0.25s;
+  }
+  .field::after,
+  .sel::after {
+    transition: height 0.3s ease, opacity 0.3s ease;
   }
 }
-p {
-  margin: 0;
+.sel .chev {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-70%);
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--accent-primary);
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
+/* ---------------------------------------------------------------------------
+   Primary button: seal-red (via --accent-primary), cream text.
+   --------------------------------------------------------------------------- */
+.btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  background: var(--accent-primary);
+  color: var(--accent-on);
+  border: none;
+  border-radius: 3px;
+  padding: 14px;
+  font-family: Georgia, serif;
   font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s;
+}
+.btn:hover {
+  background: var(--accent-primary-hover);
+}
+.btn:focus-visible {
+  outline: 3px solid rgba(138, 58, 47, 0.4);
+  outline-offset: 2px;
 }

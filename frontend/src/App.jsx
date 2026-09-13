@@ -110,83 +110,132 @@ function App() {
   // This returns the HTML (JSX). React re-runs App() and re-renders this every
   // time a setter changes state. {curly braces} drop JS values into the markup.
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // RENDER
+  //
+  // The app is two screens sharing the same paper scroll. Which one shows is
+  // decided by state that already exists: before /generate returns anything we
+  // show the SELECTION screen; once `sentences` has items we show the INPUT
+  // screen. No new state — this is the same JSX, just gated and restyled.
+  // ---------------------------------------------------------------------------
+  const onSelectionScreen = sentences.length === 0
+
   return (
-    <div>
-      <h1>Grammar Drill</h1>
-
-      {/* --- The input form --- */}
-      <div>
-        <label>
-          Concept:{' '}
-          <input
-            type="text"
-            value={concept}
-            // Every keystroke fires onChange; e.target.value is the box's text.
-            // We push it into state so `concept` always mirrors what's on screen.
-            onChange={(e) => setConcept(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div>
-        <label>
-          Count:{' '}
-          <input
-            type="number"
-            value={count}
-            onChange={(e) => setCount(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div>
-        <label>
-          HSK level (optional):{' '}
-          <input
-            type="number"
-            value={hskLevel}
-            onChange={(e) => setHskLevel(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <button onClick={handleGenerate}>Generate</button>
-
-      {/* --- The sentences + translation boxes --- */}
-      {/* sentences.map(...) turns each sentence into an <li>. `key` lets React
-          track list items across re-renders; index is fine for a static list. */}
-      <ul>
-        {sentences.map((sentence, index) => (
-          <li key={index}>
-            <div>{sentence}</div>
-            <input
-              type="text"
-              placeholder="Your Chinese translation"
-              value={translations[index] || ''}
-              onChange={(e) => handleTranslationChange(index, e.target.value)}
-            />
-          </li>
-        ))}
-      </ul>
-
-      {/* Only show the Feedback button once there are sentences to grade. */}
-      {sentences.length > 0 && (
-        <button onClick={handleGetFeedback}>Get Feedback</button>
-      )}
-
-      {/* --- The feedback, one block per sentence --- */}
-      <ul>
-        {feedback.map((item, index) => (
-          <li key={index}>
-            {/* concept_pass is a boolean; show it as PASS or FAIL text. */}
-            <div>
-              Concept: {item.concept_pass ? 'PASS' : 'FAIL'} — {item.concept_note}
+    <div className="scroll-wrap">
+      <div className="dowel top"></div>
+      <div className="paper">
+        {onSelectionScreen ? (
+          // ---------- SCREEN 1: selection / setup ----------
+          <>
+            <div className="title">
+              <span className="cn">你好学生</span>
+              <span className="en">Welcome Student</span>
             </div>
-            <div>Other: {item.other_errors}</div>
-            <div>Corrected: {item.corrected_translation}</div>
-          </li>
-        ))}
-      </ul>
+
+            <div className="row">
+              <label className="label">
+                What grammar concept do you want to work on?
+              </label>
+              <div className="field">
+                <input
+                  className="inp"
+                  type="text"
+                  placeholder="e.g. 了 for completed actions"
+                  value={concept}
+                  // Every keystroke fires onChange; e.target.value is the box's
+                  // text. We push it into state so `concept` always mirrors the
+                  // screen.
+                  onChange={(e) => setConcept(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="row">
+              <label className="label">
+                How many sentences would you like to practice?
+              </label>
+              <div className="field">
+                <input
+                  className="inp"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={count}
+                  onChange={(e) => setCount(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="row">
+              <label className="label">Vocabulary level</label>
+              <div className="sel">
+                <select
+                  value={hskLevel}
+                  onChange={(e) => setHskLevel(e.target.value)}
+                >
+                  <option value="">Any level</option>
+                  <option value="1">HSK 1</option>
+                  <option value="2">HSK 2</option>
+                  <option value="3">HSK 3</option>
+                  <option value="4">HSK 4</option>
+                  <option value="5">HSK 5</option>
+                  <option value="6">HSK 6</option>
+                </select>
+                <span className="chev">▼</span>
+              </div>
+            </div>
+
+            <button className="btn" onClick={handleGenerate}>
+              Begin practice
+            </button>
+          </>
+        ) : (
+          // ---------- SCREEN 2: sentence input ----------
+          <>
+            <p className="screen-title">Please translate the sentences</p>
+
+            {/* sentences.map(...) turns each sentence into a prompt+input pair.
+                `key` lets React track list items across re-renders; index is
+                fine for this static list. */}
+            {sentences.map((sentence, index) => (
+              <div className="row" key={index}>
+                <p className="prompt">{sentence}</p>
+                <div className="field">
+                  <input
+                    className="inp"
+                    type="text"
+                    placeholder="write your translation…"
+                    value={translations[index] || ''}
+                    onChange={(e) =>
+                      handleTranslationChange(index, e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button className="btn" onClick={handleGetFeedback}>
+              Check my translations
+            </button>
+
+            {/* --- The feedback, one block per sentence ---
+                Results screen is a LATER styling pass; left unstyled for now. */}
+            <ul>
+              {feedback.map((item, index) => (
+                <li key={index}>
+                  <div>
+                    Concept: {item.concept_pass ? 'PASS' : 'FAIL'} —{' '}
+                    {item.concept_note}
+                  </div>
+                  <div>Other: {item.other_errors}</div>
+                  <div>Corrected: {item.corrected_translation}</div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+      <div className="dowel bottom"></div>
     </div>
   )
 }
