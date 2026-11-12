@@ -3,6 +3,25 @@ import { useState } from 'react'
 // The base URL of your FastAPI backend. Everything POSTs here.
 const API = 'http://localhost:8000'
 
+// ---------------------------------------------------------------------------
+// DISPLAY-ONLY helper. `other_errors` is free text; when a sentence has no
+// other mistakes the grader writes a short "no errors" sentence rather than an
+// empty string (see the backend schema). This decides whether the quiet
+// "Also:" line is worth showing. It only affects RENDERING — it never changes
+// the grading, the data, or the /feedback call.
+// ---------------------------------------------------------------------------
+function hasOtherError(text) {
+  if (!text) return false
+  const t = text.trim().toLowerCase()
+  if (t === '') return false
+  // Common "nothing else wrong" phrasings the grader produces.
+  const noError =
+    /^(no( other)? (errors?|mistakes?|issues?)|none\b|n\/a|nothing (else )?(wrong|to (fix|correct)))/.test(
+      t
+    ) || /\bno other (errors?|mistakes?|issues?)\b/.test(t)
+  return !noError
+}
+
 function App() {
   // ---------------------------------------------------------------------------
   // STATE
@@ -119,6 +138,16 @@ function App() {
   // screen. No new state — this is the same JSX, just gated and restyled.
   // ---------------------------------------------------------------------------
   const onSelectionScreen = sentences.length === 0
+  const onResultsScreen = feedback.length > 0
+
+  // "New practice": drop the drill data so we fall back to the SELECTION screen.
+  // Only resets the per-round data; the user's concept/level choices are kept
+  // so the form comes back pre-filled. Touches no fetch logic.
+  function handleNewPractice() {
+    setSentences([])
+    setTranslations([])
+    setFeedback([])
+  }
 
   return (
     <div className="scroll-wrap">
@@ -189,6 +218,69 @@ function App() {
               Begin practice
             </button>
           </>
+        ) : onResultsScreen ? (
+          // ---------- SCREEN 3: results (REPLACES the input view) ----------
+          <>
+            {/* Teacher's remark + ONE positive, concept-oriented score. */}
+            <div className="remark">
+              <span className="cn">做得好，学生</span>
+              <span className="score">
+                Concept {concept} — you got{' '}
+                <b>{feedback.filter((f) => f.concept_pass).length}</b> of{' '}
+                {feedback.length} correct
+              </span>
+              <span className="seal" aria-hidden="true">
+                評
+              </span>
+            </div>
+            <hr className="d" />
+
+            {/* One block per sentence. The PASS/FAIL chip is the star, locked
+                to a consistent left column so the verdicts scan straight down. */}
+            {feedback.map((item, index) => (
+              <div className="block" key={index}>
+                <div
+                  className={`chip ${item.concept_pass ? 'pass' : 'fail'}`}
+                  aria-label={item.concept_pass ? 'Pass' : 'Fail'}
+                >
+                  {item.concept_pass ? '✓' : '✕'}
+                </div>
+                <div>
+                  <p className="prompt">{sentences[index]}</p>
+                  <p className="ln">
+                    <span className="l">You wrote</span>
+                    {translations[index]}
+                  </p>
+                  {/* Corrected line only when something was actually wrong. */}
+                  {item.corrected_translation ? (
+                    <p className="ln">
+                      <span className="l">Correct</span>
+                      {item.corrected_translation}
+                    </p>
+                  ) : null}
+
+                  {/* Concept FAIL: the concept's own note is the explanation —
+                      warmer, plain, part of the star verdict (not "other"). */}
+                  {!item.concept_pass && item.concept_note ? (
+                    <p className="cnote">{item.concept_note}</p>
+                  ) : null}
+
+                  {/* OTHER feedback: subordinate + conditional. Shown only when
+                      there is a real other slip, and kept quiet. */}
+                  {hasOtherError(item.other_errors) ? (
+                    <p className="other">
+                      <span className="k">Also:</span> {item.other_errors}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+
+            {/* Primary action, normal flow at the bottom (not pinned). */}
+            <button className="btn" onClick={handleNewPractice}>
+              New practice
+            </button>
+          </>
         ) : (
           // ---------- SCREEN 2: sentence input ----------
           <>
@@ -217,21 +309,6 @@ function App() {
             <button className="btn" onClick={handleGetFeedback}>
               Check my translations
             </button>
-
-            {/* --- The feedback, one block per sentence ---
-                Results screen is a LATER styling pass; left unstyled for now. */}
-            <ul>
-              {feedback.map((item, index) => (
-                <li key={index}>
-                  <div>
-                    Concept: {item.concept_pass ? 'PASS' : 'FAIL'} —{' '}
-                    {item.concept_note}
-                  </div>
-                  <div>Other: {item.other_errors}</div>
-                  <div>Corrected: {item.corrected_translation}</div>
-                </li>
-              ))}
-            </ul>
           </>
         )}
       </div>

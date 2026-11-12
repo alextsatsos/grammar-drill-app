@@ -17,7 +17,13 @@
 
   /* ink + text */
   --ink: #2b2b2b;
-  --muted: #6b6357;
+  --muted: #6b6357; /* AA on --paper (~4.9:1): quiet via size+tone, not low contrast */
+
+  /* results screen: verdict colors + hairline rule + warm note ink */
+  --pass: #3f6f34;
+  --fail: #b23b3b;
+  --rule: #e0d5bf;
+  --note-ink: #6b5a3a; /* concept-fail note; AA on --paper (~5.5:1) */
 
   /* brushed-underline inputs (used in a later step) */
   --line: #9a7c54;
@@ -303,4 +309,129 @@ body {
 .btn:focus-visible {
   outline: 3px solid rgba(138, 58, 47, 0.4);
   outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   RESULTS screen. Shares the same paper scroll; replaces the input view.
+   Hierarchy: the concept verdict (chip) is the star. A single positive score
+   sits in the teacher's remark. "Other" feedback is quiet and conditional.
+   --------------------------------------------------------------------------- */
+
+/* teacher's remark + ONE positive score + small seal */
+.remark {
+  text-align: center;
+  margin: 0 0 6px;
+}
+.remark .cn {
+  display: block;
+  font-size: 19px;
+  letter-spacing: 1px;
+}
+.remark .score {
+  display: block;
+  font-size: 15px;
+  margin-top: 8px;
+  color: var(--ink);
+}
+.remark .score b {
+  color: var(--pass);
+}
+.remark .seal {
+  display: inline-block;
+  margin-top: 12px;
+  width: 34px;
+  height: 34px;
+  line-height: 32px;
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
+  border-radius: 4px;
+  font-size: 15px;
+  transform: rotate(-4deg);
+}
+hr.d {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 20px 2px 4px;
+}
+
+/* one feedback block per sentence: locked left column (chip) + content */
+.block {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 14px;
+  padding: 18px 2px;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+}
+.block:last-of-type {
+  border-bottom: none;
+}
+.chip {
+  width: 26px;
+  height: 26px;
+  border: 2px solid;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-5deg);
+  margin-top: 3px;
+}
+.chip.pass {
+  color: var(--pass);
+  border-color: var(--pass);
+}
+.chip.fail {
+  color: var(--fail);
+  border-color: var(--fail);
+}
+
+/* the English prompt leads each block — bold ONLY here (scoped to .block so
+   the input screen's .prompt keeps its lighter weight) */
+.block .prompt {
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+/* "You wrote" / "Correct" lines: italic muted label, then the Chinese */
+.ln {
+  font-size: 14.5px;
+  margin: 2px 0;
+  line-height: 1.5;
+}
+.ln .l {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 12.5px;
+  margin-right: 4px;
+}
+
+/* OTHER feedback: quiet, muted, subordinate — only rendered when present */
+.other {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 9px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid #ddcfa8;
+  line-height: 1.5;
+}
+.other .k {
+  font-style: italic;
+}
+/* concept-FAIL explanation: the concept's own note — warmer, plain, part of
+   the star verdict (heavier presence than the quiet "Also:" line) */
+.cnote {
+  font-size: 13px;
+  color: var(--note-ink);
+  margin: 9px 0 0;
+  line-height: 1.5;
+}
+
+/* "New practice" sits in normal flow at the bottom (reuses .btn), with a touch
+   more space above it than the default .btn margin */
+.block + .btn {
+  margin-top: 26px;
 }
