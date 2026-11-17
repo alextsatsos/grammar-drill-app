@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // The base URL of your FastAPI backend. Everything POSTs here.
 const API = 'http://localhost:8000'
@@ -149,6 +149,29 @@ function App() {
     setFeedback([])
   }
 
+  // ---------------------------------------------------------------------------
+  // Enter = the primary action of whichever screen is showing. One window-level
+  // keydown handler covers all three screens — including results, which has no
+  // field to attach to — and calls the SAME functions the buttons do, so no
+  // submit logic is duplicated. Tab still moves between fields. Only a plain,
+  // non-repeating Enter counts; when a button already has focus we bail out so
+  // its native click isn't doubled. No dependency array: the effect re-binds
+  // each render so the handler always sees current state.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    function onEnter(e) {
+      if (e.key !== 'Enter' || e.repeat) return
+      if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return
+      if (document.activeElement && document.activeElement.tagName === 'BUTTON') return
+      e.preventDefault()
+      if (onSelectionScreen) handleGenerate()
+      else if (onResultsScreen) handleNewPractice()
+      else handleGetFeedback()
+    }
+    window.addEventListener('keydown', onEnter)
+    return () => window.removeEventListener('keydown', onEnter)
+  })
+
   return (
     <>
       {/* Decorative ink-painting side panels. position:fixed, so they drop out
@@ -235,9 +258,6 @@ function App() {
                 Concept {concept} — you got{' '}
                 <b>{feedback.filter((f) => f.concept_pass).length}</b> of{' '}
                 {feedback.length} correct
-              </span>
-              <span className="seal" aria-hidden="true">
-                評
               </span>
             </div>
             <hr className="d" />

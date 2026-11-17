@@ -340,7 +340,7 @@ body {
    sits in the teacher's remark. "Other" feedback is quiet and conditional.
    --------------------------------------------------------------------------- */
 
-/* teacher's remark + ONE positive score + small seal */
+/* teacher's remark + ONE positive score */
 .remark {
   text-align: center;
   margin: 0 0 6px;
@@ -358,18 +358,6 @@ body {
 }
 .remark .score b {
   color: var(--pass);
-}
-.remark .seal {
-  display: inline-block;
-  margin-top: 12px;
-  width: 34px;
-  height: 34px;
-  line-height: 32px;
-  border: 2px solid var(--accent-primary);
-  color: var(--accent-primary);
-  border-radius: 4px;
-  font-size: 15px;
-  transform: rotate(-4deg);
 }
 hr.d {
   border: none;
