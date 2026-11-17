@@ -150,8 +150,16 @@ function App() {
   }
 
   return (
-    <div className="scroll-wrap">
-      <div className="paper">
+    <>
+      {/* Decorative ink-painting side panels. position:fixed, so they drop out
+          of the centered flow and never move or overlap the content band;
+          aria-hidden + pointer-events:none keep them out of the reading and
+          click paths. They fade into the cream before reaching the band. */}
+      <div className="plum-panel left" aria-hidden="true"></div>
+      <div className="plum-panel right" aria-hidden="true"></div>
+
+      <div className="scroll-wrap">
+        <div className="paper">
         {onSelectionScreen ? (
           // ---------- SCREEN 1: selection / setup ----------
           <>
@@ -310,8 +318,9 @@ function App() {
             </button>
           </>
         )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
