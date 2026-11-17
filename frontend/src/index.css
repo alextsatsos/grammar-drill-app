@@ -70,12 +70,15 @@ body {
    content band out to the screen edges. Each is anchored to its OUTER edge
    (where the ink is densest) and gradient-masked so it dissolves into the
    cream (--paper) before it reaches the band — no hard seam, and text never
-   sits on busy painting. Hidden by default (mobile-first); shown only when
-   there is gutter room. pointer-events:none so they never catch clicks, and
-   because they're display:none on small screens the browser skips the image
-   download there entirely. */
+   sits on busy painting. Shown at tablet width and up; hidden below 768px so
+   they never appear as thin slivers. pointer-events:none so they never catch
+   clicks. */
 .plum-panel {
-  display: none; /* off until a wide-enough screen turns them on */
+  /* Shown at tablet width and up, each filling its gutter (half the leftover
+     space beside the band) plus a small tuck behind it. Below 768px they are
+     hidden entirely (see the media query below) so they never read as slivers.
+     width is floored at 0 as a safety net against very narrow gutters. */
+  display: block;
   position: fixed;
   top: 0;
   bottom: 0;
@@ -83,6 +86,7 @@ body {
   pointer-events: none;
   background-repeat: no-repeat;
   background-size: cover;
+  width: max(0px, calc((100% - var(--band)) / 2 + 40px));
 }
 .plum-panel.left {
   left: 0;
@@ -102,15 +106,15 @@ body {
   mask-image: linear-gradient(to left, #000 0%, #000 34%, transparent 92%);
 }
 
-/* Show the panels only when the gutters are wide enough to look intentional.
-   Each panel fills its gutter — half the leftover space beside the band —
-   plus a small tuck so its faded inner edge finishes BEHIND the band. As the
-   window narrows the gutter (and the panel) shrink smoothly; below the
-   breakpoint the panels drop away and the band goes full-width. */
-@media (min-width: 1000px) {
+/* Below the tablet breakpoint the gutters are too narrow for the paintings to
+   read as art (they'd become slivers), so hide them entirely and let the
+   content band go full-width. The band keeps its own side spacing — #root's
+   20px padding plus .paper's 44px — so text never touches the screen edge.
+   display:none here also makes the browser skip both image downloads on
+   phones. */
+@media (max-width: 767.98px) {
   .plum-panel {
-    display: block;
-    width: calc((100% - var(--band)) / 2 + 40px);
+    display: none;
   }
 }
 
