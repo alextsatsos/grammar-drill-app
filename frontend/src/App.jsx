@@ -151,7 +151,6 @@ function App() {
 
   return (
     <div className="scroll-wrap">
-      <div className="dowel top"></div>
       <div className="paper">
         {onSelectionScreen ? (
           // ---------- SCREEN 1: selection / setup ----------
@@ -312,7 +311,6 @@ function App() {
           </>
         )}
       </div>
-      <div className="dowel bottom"></div>
     </div>
   )
 }

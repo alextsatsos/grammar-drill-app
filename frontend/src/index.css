@@ -1,19 +1,13 @@
 /* ---------------------------------------------------------------------------
-   Chinese scholar's-desk theme.
+   Ink-painting theme — a cream content column flanked by plum-blossom panels.
 
    All colors live here as CSS custom properties named by ROLE, so a single
    edit re-themes the whole app. The accent (seal-red) is provisional — change
    --accent-primary in one place and every accent follows.
    --------------------------------------------------------------------------- */
 :root {
-  /* desk surface */
-  --desk: #c19a6b;
-  --desk-dark: #a8814f;
-
-  /* the paper scroll + its wooden rollers */
+  /* the cream paper content band — the readable column */
   --paper: #f3e9d6;
-  --dowel: #efe3cc;
-  --dowel-cap: #6b4a2f;
 
   /* ink + text */
   --ink: #2b2b2b;
@@ -45,12 +39,12 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(160deg, var(--desk), var(--desk-dark));
+  background: var(--paper);
   font-family: var(--serif);
   color: var(--ink);
 }
 
-/* React mounts here. Center the scroll near the top of the desk. */
+/* React mounts here. Center the content column near the top. */
 #root {
   min-height: 100vh;
   display: flex;
@@ -60,39 +54,14 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   The hanging scroll: a narrow vertical paper with a wooden dowel roller at
-   top and bottom.
+   The centered content column: a fixed-width cream band, capped by max-width
+   so it goes full-width on small screens.
    --------------------------------------------------------------------------- */
 .scroll-wrap {
   position: relative;
   width: 440px;
   max-width: 100%;
 }
-
-.dowel {
-  position: relative;
-  z-index: 3;
-  height: 32px;
-  background: var(--dowel);
-  border-radius: 3px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-}
-/* the darker end-caps that stick out past the paper on each side */
-.dowel::before,
-.dowel::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 13px;
-  height: 44px;
-  background: var(--dowel-cap);
-  border-radius: 2px;
-}
-.dowel::before { left: -5px; }
-.dowel::after { right: -5px; }
-.dowel.top { margin-bottom: -6px; }
-.dowel.bottom { margin-top: -6px; }
 
 .paper {
   position: relative;
