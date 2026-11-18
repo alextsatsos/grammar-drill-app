@@ -266,12 +266,11 @@ function App() {
                 to a consistent left column so the verdicts scan straight down. */}
             {feedback.map((item, index) => (
               <div className="block" key={index}>
-                <div
-                  className={`chip ${item.concept_pass ? 'pass' : 'fail'}`}
-                  aria-label={item.concept_pass ? 'Pass' : 'Fail'}
-                >
-                  {item.concept_pass ? '✓' : '✕'}
-                </div>
+                <img
+                  className={`seal ${item.concept_pass ? 'pass' : 'fail'}`}
+                  src={item.concept_pass ? '/seal-pass.PNG' : '/seal-fail.PNG'}
+                  alt={item.concept_pass ? 'Pass' : 'Fail'}
+                />
                 <div>
                   <p className="prompt">{sentences[index]}</p>
                   <p className="ln">

@@ -377,26 +377,21 @@ hr.d {
 .block:last-of-type {
   border-bottom: none;
 }
-.chip {
-  width: 26px;
-  height: 26px;
-  border: 2px solid;
-  border-radius: 5px;
-  font-size: 13px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* custom stamped seal in place of the old bordered chip — same left column,
+   same first-line alignment. Rotation is CSS-only on straight source images so
+   each verdict reads as hand-stamped, with pass/fail landing at slightly
+   different angles. */
+.seal {
+  width: 30px;
+  height: auto;
+  margin-top: 1px;
+  display: block;
+}
+.seal.pass {
   transform: rotate(-5deg);
-  margin-top: 3px;
 }
-.chip.pass {
-  color: var(--pass);
-  border-color: var(--pass);
-}
-.chip.fail {
-  color: var(--fail);
-  border-color: var(--fail);
+.seal.fail {
+  transform: rotate(3deg);
 }
 
 /* the English prompt leads each block — bold ONLY here (scoped to .block so
