@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 
 // The base URL of your FastAPI backend. Everything POSTs here.
-const API = 'http://localhost:8000'
+// In production (Vercel) this comes from the VITE_API_URL env var; locally it
+// falls back to the dev server on localhost:8000, so `npm run dev` needs no
+// .env file. Vite inlines import.meta.env.VITE_* at build time.
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 // ---------------------------------------------------------------------------
 // DISPLAY-ONLY helper. `other_errors` is free text; when a sentence has no
