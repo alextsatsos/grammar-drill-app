@@ -185,6 +185,16 @@ body {
   color: var(--ink);
 }
 
+/* Quiet helper line beneath a field (e.g. the 1–20 range on the count input).
+   Small and --muted so it reads as a gentle aside, not a warning. */
+.hint {
+  display: block;
+  margin: 7px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+}
+
 /* ---------------------------------------------------------------------------
    Brushed-underline field: a bottom border only (no box). Resting line is
    --line; on focus it darkens to --line-focus. The ink-bloom glow is added
@@ -305,6 +315,86 @@ body {
   pointer-events: none;
   font-size: 12px;
   color: var(--accent-primary);
+}
+
+/* ---------------------------------------------------------------------------
+   Skeleton placeholder — shown while /generate is running. Faint ghosted bars
+   stand in for the prompts and answer fields that are loading, so the wait
+   shows the user WHAT is coming and WHERE. One .skel-row per sentence asked
+   for, each a sentence bar above a lighter field bar.
+
+   Static by default: these are flat, faint fills. The gentle shimmer is added
+   ONLY inside the prefers-reduced-motion:no-preference block below, so a viewer
+   who asked for reduced motion sees these same bars held perfectly still — a
+   quiet "Generating…" state, built alongside, not bolted on after.
+   --------------------------------------------------------------------------- */
+.skel-line {
+  border-radius: 3px;
+  background-color: rgba(107, 90, 58, 0.16); /* faint warm ink on the cream */
+}
+.skel-prompt {
+  width: 68%;
+  height: 16px;
+}
+.skel-field {
+  width: 100%;
+  height: 13px;
+  margin-top: 16px;
+  background-color: rgba(107, 90, 58, 0.1); /* the answer field reads lighter */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A soft highlight sweeps slowly across each bar — an ink-wash breath, not a
+     flashy loader. The gradient sits over the flat fill above and animates by
+     shifting its position. */
+  .skel-line {
+    background-image: linear-gradient(
+      100deg,
+      rgba(107, 90, 58, 0.12) 30%,
+      rgba(154, 124, 84, 0.3) 50%,
+      rgba(107, 90, 58, 0.12) 70%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: skel-shimmer 1.7s ease-in-out infinite;
+  }
+  @keyframes skel-shimmer {
+    0% {
+      background-position: 150% 0;
+    }
+    100% {
+      background-position: -50% 0;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Grading skeleton — shown while /feedback is running. Results-shaped: one
+   ghost .block per submitted sentence, so it previews exactly where the verdict
+   seal and the feedback lines will land. It reuses .skel-line above, so the
+   shimmer and the prefers-reduced-motion handling are shared with the generate
+   skeleton — nothing animation-related is redefined here. Only shapes differ:
+   a seal-sized square in the left column, and prompt / answer / correction bars
+   of decreasing width in the content column.
+   --------------------------------------------------------------------------- */
+.skel-seal {
+  width: 30px;
+  height: 32px;
+  border-radius: 6px; /* a stamped-seal square, not a line */
+  margin-top: 1px; /* matches the real .seal's first-line alignment */
+}
+.skel-answer {
+  height: 13px;
+  width: 56%;
+}
+.skel-correct {
+  height: 13px;
+  width: 62%;
+}
+/* Stack the content-column bars with a little air between them. The seal sits
+   in the other grid column, so it isn't affected. */
+.skel-block .skel-line + .skel-line {
+  margin-top: 10px;
 }
 
 /* ---------------------------------------------------------------------------

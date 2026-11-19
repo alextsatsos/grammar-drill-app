@@ -66,7 +66,11 @@ class GenerateRequest(BaseModel):
     # `...` (Ellipsis) marks a field as REQUIRED. Field(...) also lets us attach
     # validation rules and documentation shown in /docs.
     concept: str = Field(..., description="The grammar concept to drill, e.g. '把-construction'.")
-    count: int = Field(..., ge=1, description="How many sentences to generate (at least 1).")
+    # ge=1 / le=20 is a HARD server-side bound. The frontend also limits this,
+    # but that limit is bypassable (curl, /docs, a modified client), so the cap
+    # is enforced here too: any request for more than 20 sentences is rejected
+    # by FastAPI with a 422 before generation runs, keeping API cost bounded.
+    count: int = Field(..., ge=1, le=20, description="How many sentences to generate (1-20).")
     # Optional field: `int | None` with a default of None. If the caller omits
     # it (or sends null), hsk_level is None and generation uses natural/default
     # vocabulary — exactly like pressing enter in the CLI.

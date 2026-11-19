@@ -22,6 +22,21 @@ function hasOtherError(text) {
   return !noError
 }
 
+// ---------------------------------------------------------------------------
+// Keep the sentence count inside the 1–20 range the backend enforces. We CLAMP
+// rather than block: an out-of-range or empty entry settles to the nearest
+// valid value instead of throwing an error at the user. Used on blur (to tidy
+// the field once they're done typing) and again at send time (so the request
+// is always in range even if they hit Enter without leaving the field).
+// ---------------------------------------------------------------------------
+const COUNT_MIN = 1
+const COUNT_MAX = 20
+function clampCount(value) {
+  const n = Math.round(Number(value))
+  if (!Number.isFinite(n)) return COUNT_MIN
+  return Math.min(COUNT_MAX, Math.max(COUNT_MIN, n))
+}
+
 function App() {
   // ---------------------------------------------------------------------------
   // STATE
@@ -53,41 +68,65 @@ function App() {
   const [feedback, setFeedback] = useState([])
 
   // ---------------------------------------------------------------------------
+  // WHICH WAIT IS ON. The app had no loading flag — screens were derived purely
+  // from `sentences` / `feedback` length, so during a fetch the user sat on a
+  // frozen screen. This single value records which request is in flight so the
+  // UI can show a waiting state. It does NOT change any fetch logic; the two
+  // handlers just set it at the start and clear it in a `finally`.
+  //   'idle'       — nothing pending
+  //   'generating' — /generate is running (skeleton screen)
+  //   'grading'    — /feedback is running (reviewing overlay, next piece)
+  // ---------------------------------------------------------------------------
+  const [phase, setPhase] = useState('idle')
+
+  // ---------------------------------------------------------------------------
   // ACTION 1: Generate sentences
   //
   // `async` lets us use `await` inside. `await` pauses this function (without
   // freezing the browser) until the network request comes back.
   // ---------------------------------------------------------------------------
   async function handleGenerate() {
-    // fetch(url, options) sends the HTTP request. We build a POST with a JSON
-    // body whose keys match your GenerateRequest model exactly: concept, count,
-    // hsk_level.
-    const response = await fetch(`${API}/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, // "the body is JSON"
-      body: JSON.stringify({
-        concept: concept,
-        count: Number(count), // inputs give strings; your model wants an int
-        // hsk_level is optional. If the box is empty we send null, which your
-        // backend treats as "omitted / use natural vocabulary".
-        hsk_level: hskLevel === '' ? null : Number(hskLevel),
-      }),
-    })
+    // Mark the generate wait as on, so the render shows the skeleton screen
+    // instead of leaving the user on a frozen selection form. The `finally`
+    // clears it whether the request succeeds or throws, so we never get stuck
+    // on the skeleton. The fetch itself is unchanged.
+    setPhase('generating')
+    try {
+      // fetch(url, options) sends the HTTP request. We build a POST with a JSON
+      // body whose keys match your GenerateRequest model exactly: concept,
+      // count, hsk_level.
+      const response = await fetch(`${API}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, // "the body is JSON"
+        body: JSON.stringify({
+          concept: concept,
+          // clampCount keeps this in 1–20 even if they hit Enter without
+          // blurring the field. The backend caps it too, independently — this
+          // is just so a valid request goes out.
+          count: clampCount(count),
+          // hsk_level is optional. If the box is empty we send null, which your
+          // backend treats as "omitted / use natural vocabulary".
+          hsk_level: hskLevel === '' ? null : Number(hskLevel),
+        }),
+      })
 
-    // response.json() reads the body and parses it from JSON text into a real
-    // JS object. It's also async, so we await it. `data` is { sentences: [...] }.
-    const data = await response.json()
+      // response.json() reads the body and parses it from JSON text into a real
+      // JS object. It's also async, so we await it. `data` is { sentences: [...] }.
+      const data = await response.json()
 
-    // Save the returned sentences into state -> triggers a re-render -> the list
-    // below appears.
-    setSentences(data.sentences)
+      // Save the returned sentences into state -> triggers a re-render -> the
+      // list below appears.
+      setSentences(data.sentences)
 
-    // Reset the answer boxes to one empty string per sentence, same length as
-    // the sentences array. Array(n).fill('') makes ['', '', ''] for 3 sentences.
-    setTranslations(Array(data.sentences.length).fill(''))
+      // Reset the answer boxes to one empty string per sentence, same length as
+      // the sentences array. Array(n).fill('') makes ['', '', ''] for 3 sentences.
+      setTranslations(Array(data.sentences.length).fill(''))
 
-    // Clear any feedback from a previous round.
-    setFeedback([])
+      // Clear any feedback from a previous round.
+      setFeedback([])
+    } finally {
+      setPhase('idle')
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -109,18 +148,27 @@ function App() {
   // backend can grade each pair. Body keys match your FeedbackRequest model.
   // ---------------------------------------------------------------------------
   async function handleGetFeedback() {
-    const response = await fetch(`${API}/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        concept: concept,
-        sentences: sentences,
-        translations: translations,
-      }),
-    })
+    // Mark the grading wait as on. Unlike generate, the answers stay on screen
+    // throughout — the render below lays a quiet ink wash over them and swaps
+    // the button for a "Reviewing…" note. The `finally` clears the flag whether
+    // grading succeeds or throws. The fetch itself is unchanged.
+    setPhase('grading')
+    try {
+      const response = await fetch(`${API}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          concept: concept,
+          sentences: sentences,
+          translations: translations,
+        }),
+      })
 
-    const data = await response.json() // { feedback: [ {...}, {...} ] }
-    setFeedback(data.feedback)
+      const data = await response.json() // { feedback: [ {...}, {...} ] }
+      setFeedback(data.feedback)
+    } finally {
+      setPhase('idle')
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -139,6 +187,20 @@ function App() {
   // ---------------------------------------------------------------------------
   const onSelectionScreen = sentences.length === 0
   const onResultsScreen = feedback.length > 0
+
+  // While /generate is running, `sentences` is still empty, so without this the
+  // user would sit on the selection form. isGenerating takes precedence in the
+  // render below and shows the skeleton instead. We mirror the chosen count (in
+  // range) so the ghosted rows roughly match what's coming.
+  const isGenerating = phase === 'generating'
+  const skeletonCount = clampCount(count)
+
+  // While /feedback is running, `feedback` is still empty, so the render would
+  // otherwise fall through to the input screen. isGrading takes precedence over
+  // that fallback and shows a results-shaped skeleton instead — one ghost block
+  // per submitted sentence — so the wait clearly reads as "working," matching
+  // the generate-step skeleton.
+  const isGrading = phase === 'grading'
 
   // "New practice": drop the drill data so we fall back to the SELECTION screen.
   // Only resets the per-round data; the user's concept/level choices are kept
@@ -163,6 +225,8 @@ function App() {
       if (e.key !== 'Enter' || e.repeat) return
       if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return
       if (document.activeElement && document.activeElement.tagName === 'BUTTON') return
+      // A request is already in flight — don't let Enter fire a duplicate.
+      if (phase !== 'idle') return
       e.preventDefault()
       if (onSelectionScreen) handleGenerate()
       else if (onResultsScreen) handleNewPractice()
@@ -183,7 +247,26 @@ function App() {
 
       <div className="scroll-wrap">
         <div className="paper">
-        {onSelectionScreen ? (
+        {isGenerating ? (
+          // ---------- LOADING: generating sentences (skeleton) ----------
+          // Ghosted rows standing in for the prompts + answer fields that are
+          // coming, so the wait shows the user WHAT and WHERE. One row per
+          // sentence they asked for. The bars are decorative (aria-hidden); the
+          // heading carries the meaning for screen readers. The shimmer lives
+          // only in a prefers-reduced-motion:no-preference block in the CSS, so
+          // reduced-motion users get these same bars, held still.
+          <>
+            <p className="screen-title" role="status">
+              Generating your sentences…
+            </p>
+            {Array.from({ length: skeletonCount }).map((_, i) => (
+              <div className="row skel-row" key={i} aria-hidden="true">
+                <div className="skel-line skel-prompt"></div>
+                <div className="skel-line skel-field"></div>
+              </div>
+            ))}
+          </>
+        ) : onSelectionScreen ? (
           // ---------- SCREEN 1: selection / setup ----------
           <>
             <div className="title">
@@ -218,11 +301,17 @@ function App() {
                   className="inp"
                   type="number"
                   min="1"
-                  max="10"
+                  max="20"
                   value={count}
                   onChange={(e) => setCount(e.target.value)}
+                  // Settle the field into range once they finish typing. We
+                  // don't clamp on every keystroke — that would fight the user
+                  // mid-edit (e.g. clearing the box to retype). Clamp on blur
+                  // and again at send time instead.
+                  onBlur={() => setCount(clampCount(count))}
                 />
               </div>
+              <span className="hint">1–20 sentences</span>
             </div>
 
             <div className="row">
@@ -306,6 +395,34 @@ function App() {
             <button className="btn" onClick={handleNewPractice}>
               New practice
             </button>
+          </>
+        ) : isGrading ? (
+          // ---------- LOADING: grading (results-shaped skeleton) ----------
+          // Ghosted results blocks — one per submitted sentence — standing in
+          // for the verdict seal and the prompt / answer / correction lines that
+          // are coming. This REPLACES the input view, the same way the real
+          // results do, so the transition reads inputs → results-shaped ghosts
+          // → results. It reuses the exact .skel-line class the generate
+          // skeleton uses, so the shimmer and the prefers-reduced-motion
+          // handling are identical — the two waits look like one family. The
+          // bars are decorative (aria-hidden); the heading carries the meaning
+          // for screen readers.
+          <>
+            <p className="screen-title" role="status">
+              Marking your translations…
+            </p>
+            {sentences.map((_, i) => (
+              // Same .block grid as a real feedback block (seal column + content),
+              // so the ghost sits exactly where the verdict will.
+              <div className="block skel-block" key={i} aria-hidden="true">
+                <div className="skel-line skel-seal"></div>
+                <div>
+                  <div className="skel-line skel-prompt"></div>
+                  <div className="skel-line skel-answer"></div>
+                  <div className="skel-line skel-correct"></div>
+                </div>
+              </div>
+            ))}
           </>
         ) : (
           // ---------- SCREEN 2: sentence input ----------
