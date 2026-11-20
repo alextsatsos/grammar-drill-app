@@ -39,6 +39,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://grammar-drill-app.vercel.app",
     ],
     allow_methods=["*"],   # allow GET, POST, OPTIONS preflight, etc.
     allow_headers=["*"],   # allow Content-Type: application/json, etc.
